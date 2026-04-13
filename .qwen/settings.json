@@ -22,7 +22,10 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git config *)",
-      "Bash(git branch *)"
+      "Bash(git branch *)",
+      "mcp__github__create_repository",
+      "Bash(git remote *)",
+      "Bash(git push *)"
     ]
   },
   "$version": 3
