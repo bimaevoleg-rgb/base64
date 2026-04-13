@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node *)",
+      "Bash(termux-open *)",
+      "Bash(kill *)",
+      "Bash(sleep *)",
+      "Bash(ss *)",
+      "Bash(curl *)",
+      "Bash(am *)",
+      "Bash(pkg *)",
+      "Bash(darkhttpd *)",
+      "Bash(docker *)",
+      "Bash(npx *)",
+      "Bash(npm *)",
+      "Bash(go *)",
+      "Bash(gh *)",
+      "Bash(~/go/bin/github-mcp-server *)",
+      "Bash(/data/data/com.termux/files/home/go/bin/github-mcp-server *)",
+      "Bash(which *)",
+      "Bash(git init)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git config *)",
+      "Bash(git branch *)"
+    ]
+  },
+  "$version": 3
+}

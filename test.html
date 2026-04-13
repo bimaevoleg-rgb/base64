@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Base64 — Автоматические тесты</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --pass: #22c55e;
+    --fail: #ef4444;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px;
+    line-height: 1.5;
+  }
+  .container { max-width: 800px; margin: 0 auto; }
+  h1 {
+    text-align: center;
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .summary {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .summary-card {
+    flex: 1;
+    min-width: 120px;
+    padding: 16px;
+    border-radius: 12px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.5rem;
+  }
+  .summary-card.total { background: #334155; }
+  .summary-card.passed { background: rgba(34,197,94,0.2); color: var(--pass); }
+  .summary-card.failed { background: rgba(239,68,68,0.2); color: var(--fail); }
+  .summary-card small { display: block; font-size: 0.75rem; color: var(--muted); font-weight: 400; }
+  .test-result {
+    background: var(--card);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    border-left: 4px solid var(--muted);
+  }
+  .test-result.pass { border-left-color: var(--pass); }
+  .test-result.fail { border-left-color: var(--fail); }
+  .test-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+  }
+  .test-detail {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-family: monospace;
+    word-break: break-all;
+  }
+  .test-detail span { color: var(--text); }
+  .status { font-weight: 700; }
+  .status.pass { color: var(--pass); }
+  .status.fail { color: var(--fail); }
+  #run-btn {
+    display: block;
+    margin: 20px auto;
+    padding: 12px 32px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #run-btn:hover { background: #2563eb; }
+  #run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🧪 Автоматические тесты Base64</h1>
+  <button id="run-btn" onclick="runAllTests()">▶ Запустить все тесты</button>
+  <div id="summary" class="summary" style="display:none;"></div>
+  <div id="results"></div>
+</div>
+
+<script>
+/* ================================================================
+   ФУНКЦИИ КОНВЕРТАЦИИ (скопированы из index.html)
+   ================================================================ */
+
+/** Encode text → Base64 (UTF-8 safe) */
+function encodeBase64(text) {
+  const bytes = new TextEncoder().encode(text);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+/** Decode Base64 → text (UTF-8 safe) */
+function decodeBase64(base64) {
+  const clean = base64.replace(/\s/g, '');
+  const binary = atob(clean);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new TextDecoder().decode(bytes);
+}
+
+/** Encode ArrayBuffer → Base64 */
+function arrayBufferToBase64(buffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+/** Decode Base64 → ArrayBuffer */
+function base64ToArrayBuffer(base64) {
+  const clean = base64.replace(/\s/g, '');
+  const binary = atob(clean);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+/** Validate Base64 string */
+function isValidBase64(str) {
+  const clean = str.replace(/\s/g, '');
+  if (clean.length % 4 !== 0) return false;
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(clean)) return false;
+  return true;
+}
+
+/** Detect MIME type from magic bytes */
+function detectMimeType(bytes) {
+  const signatures = [
+    { bytes: [0x89, 0x50, 0x4E, 0x47], mime: 'image/png', ext: 'png' },
+    { bytes: [0xFF, 0xD8, 0xFF], mime: 'image/jpeg', ext: 'jpg' },
+    { bytes: [0x47, 0x49, 0x46], mime: 'image/gif', ext: 'gif' },
+    { bytes: [0x25, 0x50, 0x44, 0x46], mime: 'application/pdf', ext: 'pdf' },
+    { bytes: [0x50, 0x4B, 0x03, 0x04], mime: 'application/zip', ext: 'zip' },
+  ];
+  for (const sig of signatures) {
+    let match = true;
+    for (let i = 0; i < sig.bytes.length; i++) {
+      if (bytes[i] !== sig.bytes[i]) { match = false; break; }
+    }
+    if (match) return sig;
+  }
+  return null;
+}
+
+/* ================================================================
+   ТЕСТЫ
+   ================================================================ */
+const tests = [];
+
+// ---------- Текст → Base64 ----------
+tests.push({
+  name: 'Encode: ASCII текст',
+  fn: () => {
+    const input = 'Hello, World!';
+    const expected = 'SGVsbG8sIFdvcmxkIQ==';
+    const result = encodeBase64(input);
+    return { pass: result === expected, input, expected, result };
+  }
+});
+
+tests.push({
+  name: 'Encode: Кириллица (UTF-8)',
+  fn: () => {
+    const input = 'Привет, мир!';
+    const expected = '0J/RgNC40LLQtdGCLCDQvNC40YAh';
+    const result = encodeBase64(input);
+    return { pass: result === expected, input, expected, result };
+  }
+});
+
+tests.push({
+  name: 'Encode: Эмодзи',
+  fn: () => {
+    const input = '🚀🔥✅';
+    const result = encodeBase64(input);
+    // Round-trip check
+    const decoded = decodeBase64(result);
+    return { pass: decoded === input, input, result };
+  }
+});
+
+tests.push({
+  name: 'Encode: Пустая строка',
+  fn: () => {
+    const result = encodeBase64('');
+    return { pass: result === '', result };
+  }
+});
+
+tests.push({
+  name: 'Encode: Специальные символы',
+  fn: () => {
+    const input = '<div class="test">&nbsp;</div>';
+    const result = encodeBase64(input);
+    const decoded = decodeBase64(result);
+    return { pass: decoded === input, input, result };
+  }
+});
+
+tests.push({
+  name: 'Encode: Переносы строк и табуляция',
+  fn: () => {
+    const input = 'line1\nline2\r\nline3\ttab';
+    const result = encodeBase64(input);
+    const decoded = decodeBase64(result);
+    return { pass: decoded === input, result };
+  }
+});
+
+tests.push({
+  name: 'Encode: Длинный текст (10 KB)',
+  fn: () => {
+    const input = 'A'.repeat(10240);
+    const result = encodeBase64(input);
+    const decoded = decodeBase64(result);
+    return { pass: decoded === input, inputLen: input.length, resultLen: result.length };
+  }
+});
+
+tests.push({
+  name: 'Encode: Китайские иероглифы',
+  fn: () => {
+    const input = '你好世界';
+    const result = encodeBase64(input);
+    const decoded = decodeBase64(result);
+    return { pass: decoded === input, input, result };
+  }
+});
+
+tests.push({
+  name: 'Encode: JSON строка',
+  fn: () => {
+    const input = JSON.stringify({ name: 'Тест', value: 42, tags: ['a','b'] });
+    const result = encodeBase64(input);
+    const decoded = decodeBase64(result);
+    return { pass: decoded === input, input, result };
+  }
+});
+
+// ---------- Base64 → Текст ----------
+tests.push({
+  name: 'Decode: Стандартный Base64',
+  fn: () => {
+    const input = 'SGVsbG8sIFdvcmxkIQ==';
+    const expected = 'Hello, World!';
+    const result = decodeBase64(input);
+    return { pass: result === expected, input, expected, result };
+  }
+});
+
+tests.push({
+  name: 'Decode: Base64 с пробелами',
+  fn: () => {
+    const input = 'SGVs bG8s I Fdv cmx kIQ==';
+    const expected = 'Hello, World!';
+    const result = decodeBase64(input);
+    return { pass: result === expected, input, expected, result };
+  }
+});
+
+tests.push({
+  name: 'Decode: Кириллица',
+  fn: () => {
+    const input = '0J/RgNC40LLQtdGCLCDQvNC40YAh';
+    const expected = 'Привет, мир!';
+    const result = decodeBase64(input);
+    return { pass: result === expected, input, expected, result };
+  }
+});
+
+tests.push({
+  name: 'Decode: Без padding (=)',
+  fn: () => {
+    const input = 'SGVsbG8';  // "Hello" without padding
+    // Our decoder requires valid Base64 (length % 4 === 0)
+    // So this should throw or we handle it
+    try {
+      const result = decodeBase64(input);
+      return { pass: false, reason: 'Should have thrown for invalid length', result };
+    } catch (e) {
+      return { pass: true, reason: 'Correctly rejected invalid padding' };
+    }
+  }
+});
+
+tests.push({
+  name: 'Decode: Некорректный символ',
+  fn: () => {
+    try {
+      decodeBase64('SGVsbG8s@FdvcmxkIQ==');
+      return { pass: false, reason: 'Should have thrown' };
+    } catch (e) {
+      return { pass: true, reason: 'Correctly rejected invalid character' };
+    }
+  }
+});
+
+// ---------- Round-trip ----------
+tests.push({
+  name: 'Round-trip: Текст → Base64 → Текст',
+  fn: () => {
+    const original = 'Тестирование Base64 конвертера! 12345 🔐';
+    const encoded = encodeBase64(original);
+    const decoded = decodeBase64(encoded);
+    return { pass: decoded === original, original, encoded, decoded };
+  }
+});
+
+tests.push({
+  name: 'Round-trip: Все printable ASCII',
+  fn: () => {
+    const original = ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~';
+    const encoded = encodeBase64(original);
+    const decoded = decodeBase64(encoded);
+    return { pass: decoded === original };
+  }
+});
+
+// ---------- isValidBase64 ----------
+tests.push({
+  name: 'Validation: корректный Base64',
+  fn: () => {
+    const result = isValidBase64('SGVsbG8=');
+    return { pass: result === true, result };
+  }
+});
+
+tests.push({
+  name: 'Validation: некорректный Base64 (@)',
+  fn: () => {
+    const result = isValidBase64('SGVsbG8@');
+    return { pass: result === false, result };
+  }
+});
+
+tests.push({
+  name: 'Validation: неверная длина',
+  fn: () => {
+    const result = isValidBase64('SGV');
+    return { pass: result === false, result };
+  }
+});
+
+tests.push({
+  name: 'Validation: пустая строка',
+  fn: () => {
+    const result = isValidBase64('');
+    return { pass: result === true, result };
+  }
+});
+
+// ---------- ArrayBuffer round-trip ----------
+tests.push({
+  name: 'ArrayBuffer Round-trip: Бинарные данные',
+  fn: () => {
+    const original = new Uint8Array([0x00, 0x01, 0x02, 0xFF, 0xFE, 0xFD, 0x89, 0x50, 0x4E, 0x47]);
+    const b64 = arrayBufferToBase64(original.buffer);
+    const restored = new Uint8Array(base64ToArrayBuffer(b64));
+    const match = original.length === restored.length &&
+                  original.every((v, i) => v === restored[i]);
+    return { pass: match, original: [...original], restored: [...restored] };
+  }
+});
+
+tests.push({
+  name: 'ArrayBuffer Round-trip: 1 KB случайных данных',
+  fn: () => {
+    const original = new Uint8Array(1024);
+    for (let i = 0; i < 1024; i++) original[i] = Math.floor(Math.random() * 256);
+    const b64 = arrayBufferToBase64(original.buffer);
+    const restored = new Uint8Array(base64ToArrayBuffer(b64));
+    const match = original.every((v, i) => v === restored[i]);
+    return { pass: match };
+  }
+});
+
+tests.push({
+  name: 'ArrayBuffer Round-trip: PNG magic bytes',
+  fn: () => {
+    const pngHeader = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+    const b64 = arrayBufferToBase64(pngHeader.buffer);
+    const restored = new Uint8Array(base64ToArrayBuffer(b64));
+    const detected = detectMimeType(restored);
+    const match = detected && detected.mime === 'image/png';
+    return { pass: match, detected: detected ? detected.mime : null };
+  }
+});
+
+tests.push({
+  name: 'ArrayBuffer Round-trip: JPEG magic bytes',
+  fn: () => {
+    const jpegHeader = new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10]);
+    const b64 = arrayBufferToBase64(jpegHeader.buffer);
+    const restored = new Uint8Array(base64ToArrayBuffer(b64));
+    const detected = detectMimeType(restored);
+    const match = detected && detected.mime === 'image/jpeg';
+    return { pass: match, detected: detected ? detected.mime : null };
+  }
+});
+
+// ---------- Base64 output format ----------
+tests.push({
+  name: 'Format: Base64 содержит только допустимые символы',
+  fn: () => {
+    const result = encodeBase64('Test 123! Привет 🎉');
+    const valid = /^[A-Za-z0-9+/]*={0,2}$/.test(result);
+    return { pass: valid, result, length: result.length };
+  }
+});
+
+tests.push({
+  name: 'Format: Длина Base64 кратна 4',
+  fn: () => {
+    const inputs = ['A', 'AB', 'ABC', 'ABCD', 'Hello, World! 123', 'Привет мир'];
+    const allValid = inputs.every(s => encodeBase64(s).length % 4 === 0);
+    return { pass: allValid, samples: inputs.map(s => ({ input: s, len: encodeBase64(s).length })) };
+  }
+});
+
+// ---------- Overhead check ----------
+tests.push({
+  name: 'Overhead: Base64 ~33% больше оригинала',
+  fn: () => {
+    const input = 'Hello, World! This is a test string for size overhead check.';
+    const b64 = encodeBase64(input);
+    const overhead = (b64.length / input.length - 1) * 100;
+    // Base64 overhead is ~33%
+    return { pass: overhead >= 30 && overhead <= 40, overhead: overhead.toFixed(1) + '%' };
+  }
+});
+
+/* ================================================================
+   ЗАПУСК ТЕСТОВ
+   ================================================================ */
+async function runAllTests() {
+  const btn = document.getElementById('run-btn');
+  const summaryEl = document.getElementById('summary');
+  const resultsEl = document.getElementById('results');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Выполняется...';
+  resultsEl.innerHTML = '';
+  summaryEl.style.display = 'none';
+
+  let passed = 0;
+  let failed = 0;
+  const results = [];
+
+  // Small delay for UX
+  await new Promise(r => setTimeout(r, 100));
+
+  for (const test of tests) {
+    try {
+      const outcome = test.fn();
+      if (outcome.pass) {
+        passed++;
+        results.push({ name: test.name, status: 'pass', detail: outcome });
+      } else {
+        failed++;
+        results.push({ name: test.name, status: 'fail', detail: outcome });
+      }
+    } catch (e) {
+      failed++;
+      results.push({ name: test.name, status: 'fail', detail: { reason: e.message } });
+    }
+  }
+
+  // Render summary
+  summaryEl.innerHTML = `
+    <div class="summary-card total">${tests.length}<small>Всего</small></div>
+    <div class="summary-card passed">${passed}<small>✅ Passed</small></div>
+    <div class="summary-card failed">${failed}<small>❌ Failed</small></div>
+  `;
+  summaryEl.style.display = 'flex';
+
+  // Render results
+  resultsEl.innerHTML = results.map(r => {
+    const d = r.detail;
+    let detailHTML = '';
+    if (d.reason) {
+      detailHTML = `<div class="test-detail">${d.reason}</div>`;
+    } else {
+      if (d.input !== undefined) detailHTML += `<div class="test-detail">Input: <span>${esc(d.input)}</span></div>`;
+      if (d.expected !== undefined) detailHTML += `<div class="test-detail">Expected: <span>${esc(d.expected)}</span></div>`;
+      if (d.result !== undefined) detailHTML += `<div class="test-detail">Got: <span>${esc(String(d.result))}</span></div>`;
+      if (d.original) detailHTML += `<div class="test-detail">Original: <span>${JSON.stringify(d.original)}</span></div>`;
+      if (d.restored) detailHTML += `<div class="test-detail">Restored: <span>${JSON.stringify(d.restored)}</span></div>`;
+      if (d.detected) detailHTML += `<div class="test-detail">Detected: <span>${d.detected}</span></div>`;
+      if (d.overhead) detailHTML += `<div class="test-detail">Overhead: <span>${d.overhead}</span></div>`;
+      if (d.inputLen !== undefined) detailHTML += `<div class="test-detail">Input len: <span>${d.inputLen}</span>, Result len: <span>${d.resultLen}</span></div>`;
+      if (d.samples) detailHTML += `<div class="test-detail">Samples: <span>${JSON.stringify(d.samples)}</span></div>`;
+      if (d.length !== undefined) detailHTML += `<div class="test-detail">Length: <span>${d.length}</span></div>`;
+    }
+    return `
+      <div class="test-result ${r.status}">
+        <div class="test-name"><span class="status ${r.status}">${r.status === 'pass' ? '✅' : '❌'}</span> ${esc(r.name)}</div>
+        ${detailHTML}
+      </div>
+    `;
+  }).join('');
+
+  btn.disabled = false;
+  btn.textContent = '🔄 Перезапустить тесты';
+}
+
+function esc(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// Auto-run on load
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(runAllTests, 300);
+});
+</script>
+</body>
+</html>

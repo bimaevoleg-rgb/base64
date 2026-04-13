@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Base64 Конвертер</title>
+<style>
+/* ======================== CSS VARIABLES ======================== */
+:root {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-input: #0f172a;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-glow: rgba(59, 130, 246, 0.3);
+  --success: #22c55e;
+  --success-bg: rgba(34, 197, 94, 0.1);
+  --error: #ef4444;
+  --error-bg: rgba(239, 68, 68, 0.1);
+  --border: #475569;
+  --border-focus: #3b82f6;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  --transition: 0.2s ease;
+}
+
+/* ======================== RESET & BASE ======================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  padding: 16px;
+}
+
+/* ======================== LAYOUT ======================== */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ======================== HEADER ======================== */
+.header {
+  text-align: center;
+  padding: 24px 16px;
+}
+
+.header h1 {
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+}
+
+.header p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Privacy badge */
+.privacy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--success-bg);
+  color: var(--success);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+/* ======================== TABS ======================== */
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-secondary);
+  padding: 4px;
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.tab-btn.active {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.tab-btn .icon {
+  font-size: 1.1rem;
+}
+
+/* ======================== CARDS ======================== */
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+
+.card-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.card-label span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ======================== TEXTAREA ======================== */
+textarea {
+  width: 100%;
+  min-height: 140px;
+  max-height: 400px;
+  padding: 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color var(--transition);
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* ======================== BUTTONS ======================== */
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.btn:hover {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-success {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.btn-success:hover {
+  background: var(--success);
+  color: white;
+}
+
+/* ======================== DROP ZONE ======================== */
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition);
+  position: relative;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+  border-color: var(--accent);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.drop-zone.drag-over {
+  transform: scale(1.01);
+}
+
+.drop-zone-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.drop-zone-text {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+}
+
+.drop-zone-hint {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.drop-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* ======================== FILE PREVIEW ======================== */
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.file-info img {
+  max-height: 150px;
+  max-width: 200px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
+.file-meta {
+  flex: 1;
+  min-width: 120px;
+}
+
+.file-meta .name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  word-break: break-all;
+}
+
+.file-meta .size {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.file-meta .mime {
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-family: monospace;
+  margin-top: 2px;
+}
+
+/* ======================== PROGRESS ======================== */
+.progress-bar {
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  margin-top: 12px;
+  overflow: hidden;
+  display: none;
+}
+
+.progress-bar.visible {
+  display: block;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #8b5cf6);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+/* ======================== SPINNER ======================== */
+.spinner {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-top: 10px;
+}
+
+.spinner.visible {
+  display: flex;
+}
+
+.spinner::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ======================== ALERTS ======================== */
+.alert {
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  margin-top: 12px;
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.alert.visible {
+  display: flex;
+}
+
+.alert-error {
+  background: var(--error-bg);
+  color: var(--error);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.alert-success {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+/* ======================== TOAST ======================== */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  padding: 12px 24px;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border);
+  z-index: 1000;
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ======================== STATS ======================== */
+.stats {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-value {
+  color: var(--text-secondary);
+  font-family: monospace;
+  font-weight: 600;
+}
+
+/* ======================== DOWNLOAD SECTION ======================== */
+.download-section {
+  display: none;
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.download-section.visible {
+  display: block;
+}
+
+.download-section p {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+}
+
+#decoded-file-info .file-meta .name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  word-break: break-all;
+  color: var(--text-primary);
+}
+
+#decoded-file-info .file-meta .size {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* ======================== FOOTER ======================== */
+.footer {
+  text-align: center;
+  padding: 24px 16px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* ======================== RESPONSIVE ======================== */
+@media (max-width: 600px) {
+  body {
+    padding: 8px;
+  }
+
+  .header {
+    padding: 16px 8px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  textarea {
+    min-height: 110px;
+    font-size: 0.8rem;
+  }
+
+  .tab-btn {
+    padding: 10px 8px;
+    font-size: 0.8rem;
+  }
+
+  .tab-btn .label-text {
+    display: none;
+  }
+
+  .tab-btn .icon {
+    font-size: 1.3rem;
+  }
+
+  .btn {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+
+  .drop-zone {
+    padding: 24px 16px;
+  }
+
+  .drop-zone-icon {
+    font-size: 2rem;
+  }
+
+  .file-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .file-info img {
+    max-width: 100%;
+  }
+}
+
+@media (min-width: 601px) and (max-width: 1024px) {
+  .container {
+    max-width: 700px;
+  }
+}
+
+/* ======================== SCROLLBAR ======================== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border);
+}
+
+/* Make success alert clickable for download */
+.alert-success.visible {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.alert-success.visible:hover {
+  background: rgba(34, 197, 94, 0.2) !important;
+  transform: scale(1.01);
+}
+.alert-success.visible:active {
+  transform: scale(0.98);
+}
+
+/* ======================== DIRECTION TOGGLE ======================== */
+.direction-toggle {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  background: var(--bg-secondary);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.dir-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.dir-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.dir-btn.active {
+  background: var(--accent);
+  color: white;
+}
+
+.dir-icon {
+  font-size: 1rem;
+}
+
+@media (max-width: 600px) {
+  .dir-btn .dir-label {
+    font-size: 0.75rem;
+  }
+  .dir-btn {
+    padding: 8px 6px;
+  }
+}
+
+/* ======================== MODAL ======================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-overlay.visible {
+  display: flex;
+}
+
+.modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5);
+  animation: modalIn 0.25s ease;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.modal-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  transition: border-color var(--transition);
+}
+
+.modal-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.modal-select {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: border-color var(--transition);
+}
+
+.modal-select:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.modal-preview-area {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.modal-result-name {
+  margin-top: 12px;
+  text-align: center;
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--accent);
+  word-break: break-all;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  justify-content: flex-end;
+}
+
+@media (max-width: 600px) {
+  .modal {
+    max-width: 100%;
+    margin: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+    align-self: flex-end;
+  }
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- ==================== HEADER ==================== -->
+  <header class="header">
+    <h1>🔐 Base64 Конвертер</h1>
+    <p>Кодирование и декодирование текста и файлов</p>
+    <div class="privacy-badge">
+      🔒 Все данные обрабатываются только в вашем браузере
+    </div>
+  </header>
+
+  <!-- ==================== TABS ==================== -->
+  <div class="tabs" role="tablist">
+    <button class="tab-btn active" data-tab="text" role="tab" aria-selected="true">
+      <span class="icon">📝</span>
+      <span class="label-text">Текст ↔ Base64</span>
+    </button>
+    <button class="tab-btn" data-tab="file" role="tab" aria-selected="false">
+      <span class="icon">📁</span>
+      <span class="label-text">Файл ↔ Base64</span>
+    </button>
+  </div>
+
+  <!-- ==================== TEXT MODE ==================== -->
+  <div id="tab-text" class="tab-content">
+    <!-- Direction Toggle -->
+    <div class="direction-toggle" id="text-direction">
+      <button class="dir-btn active" data-dir="encode" title="Текст → Base64">
+        <span class="dir-icon">🔒</span>
+        <span class="dir-label">Текст → Base64</span>
+      </button>
+      <button class="dir-btn" data-dir="decode" title="Base64 → Текст">
+        <span class="dir-icon">🔓</span>
+        <span class="dir-label">Base64 → Текст</span>
+      </button>
+    </div>
+
+    <!-- Input Card -->
+    <div class="card">
+      <div class="card-label">
+        <span id="text-input-label">Текст для кодирования</span>
+        <button class="btn btn-sm" id="btn-swap-text" title="Поменять местами" style="padding:4px 8px; font-size:0.8rem;">
+          ⇄ Обмен
+        </button>
+      </div>
+      <textarea
+        id="text-input"
+        placeholder="Введите текст для кодирования в Base64..."
+        spellcheck="false"
+      ></textarea>
+      <div class="btn-row">
+        <button class="btn" id="btn-example-text" title="Вставить пример текста">
+          💡 Пример текста
+        </button>
+        <button class="btn" id="btn-paste-text" title="Вставить из буфера">
+          📥 Вставить
+        </button>
+        <button class="btn" id="btn-clear-text" title="Очистить поле">
+          🗑️ Очистить
+        </button>
+      </div>
+      <div class="stats">
+        <div class="stat-item">
+          Символов: <span class="stat-value" id="text-char-count">0</span>
+        </div>
+        <div class="stat-item">
+          Байт: <span class="stat-value" id="text-byte-count">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Output Card -->
+    <div class="card">
+      <div class="card-label">
+        <span id="text-output-label">Результат (Base64)</span>
+      </div>
+      <textarea
+        id="text-output"
+        placeholder="Здесь появится результат..."
+        readonly
+      ></textarea>
+      <div class="btn-row">
+        <button class="btn btn-success" id="btn-copy-text-output" title="Копировать результат">
+          📋 Копировать
+        </button>
+        <button class="btn btn-primary" id="btn-download-text-output" title="Скачать результат">
+          💾 Скачать
+        </button>
+      </div>
+
+      <!-- Error/Success alerts -->
+      <div class="alert alert-error" id="text-error"></div>
+      <div class="alert alert-success" id="text-success"></div>
+    </div>
+  </div>
+
+  <!-- ==================== FILE MODE ==================== -->
+  <div id="tab-file" class="tab-content" style="display: none;">
+    <!-- File Upload Card -->
+    <div class="card">
+      <div class="card-label">
+        <span>Загрузить файл для кодирования</span>
+      </div>
+
+      <!-- Drag & Drop Zone -->
+      <div class="drop-zone" id="drop-zone">
+        <span class="drop-zone-icon">📤</span>
+        <div class="drop-zone-text">Перетащите файл сюда или нажмите для выбора</div>
+        <div class="drop-zone-hint">Изображения, PDF, документы, любые файлы (до 50 МБ)</div>
+        <input type="file" id="file-input" accept="*/*">
+      </div>
+
+      <!-- File preview area -->
+      <div class="file-info" id="file-info" style="display: none;">
+        <img id="file-preview-img" src="" alt="Превью файла" style="display: none;">
+        <div class="file-meta">
+          <div class="name" id="file-name"></div>
+          <div class="size" id="file-size"></div>
+          <div class="mime" id="file-mime"></div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-bar" id="file-progress">
+        <div class="progress-fill" id="file-progress-fill"></div>
+      </div>
+      <div class="spinner" id="file-spinner">
+        Обработка файла...
+      </div>
+
+      <div class="alert alert-error" id="file-error"></div>
+    </div>
+
+    <!-- File Base64 Output -->
+    <div class="card" id="file-base64-card" style="display: none;">
+      <div class="card-label">
+        <span>Base64 файла</span>
+      </div>
+      <textarea id="file-base64-output" readonly placeholder="Base64-строка появится здесь..."></textarea>
+      <div class="btn-row">
+        <button class="btn btn-success" id="btn-copy-file-base64" title="Копировать Base64">
+          📋 Копировать Base64
+        </button>
+        <button class="btn btn-primary" id="btn-download-base64" title="Скачать как .b64 файл">
+          💾 Скачать .b64
+        </button>
+      </div>
+      <div class="stats">
+        <div class="stat-item">
+          Размер Base64: <span class="stat-value" id="file-base64-size">0</span>
+        </div>
+        <div class="stat-item">
+          Размер файла: <span class="stat-value" id="file-original-size">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Decode Base64 to File -->
+    <div class="card">
+      <div class="card-label">
+        <span>Декодировать Base64 в файл</span>
+      </div>
+      <textarea
+        id="decode-input"
+        placeholder="Вставьте Base64-строку или data: URL для декодирования в файл..."
+        spellcheck="false"
+      ></textarea>
+      <div class="btn-row">
+        <button class="btn" id="btn-example-base64" title="Вставить пример Base64">
+          💡 Пример Base64
+        </button>
+        <button class="btn btn-primary" id="btn-decode" title="Декодировать">
+          🔓 Декодировать
+        </button>
+        <button class="btn" id="btn-clear-decode" title="Очистить">
+          🗑️ Очистить
+        </button>
+      </div>
+
+      <div class="alert alert-error" id="decode-error"></div>
+      <div class="alert alert-success" id="decode-success"></div>
+
+      <!-- Download section (shown after successful decode) -->
+      <div class="download-section" id="download-section">
+        <p>✅ Файл успешно декодирован!</p>
+        <div id="decoded-file-info" style="margin-bottom:12px;">
+          <div class="file-meta">
+            <div class="size" id="decoded-size"></div>
+          </div>
+        </div>
+        <div id="decoded-file-preview" style="display:none; margin-bottom:12px;">
+          <img id="decoded-preview-img" src="" alt="Превью" style="max-height:150px; max-width:200px; border-radius:8px; object-fit:contain;">
+        </div>
+        <div class="btn-row" style="justify-content: center;">
+          <button class="btn btn-primary" id="btn-download" title="Выбрать имя и скачать">
+            💾 Выбрать и скачать
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== DOWNLOAD MODAL ==================== -->
+  <div class="modal-overlay" id="download-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">💾 Сохранить файл</span>
+        <button class="modal-close" id="modal-close-btn" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="modal-body">
+        <label class="modal-label">Имя файла</label>
+        <input type="text" class="modal-input" id="modal-filename" placeholder="имя_файла" spellcheck="false" autocomplete="off">
+        <label class="modal-label" style="margin-top:12px;">Расширение</label>
+        <select class="modal-select" id="modal-ext">
+          <option value="png">.png — Изображение PNG</option>
+          <option value="jpg">.jpg — Изображение JPEG</option>
+          <option value="gif">.gif — Изображение GIF</option>
+          <option value="webp">.webp — Изображение WebP</option>
+          <option value="svg">.svg — Изображение SVG</option>
+          <option value="pdf">.pdf — Документ PDF</option>
+          <option value="txt">.txt — Текст</option>
+          <option value="html">.html — HTML-страница</option>
+          <option value="css">.css — Стили CSS</option>
+          <option value="js">.js — JavaScript</option>
+          <option value="json">.json — JSON</option>
+          <option value="xml">.xml — XML</option>
+          <option value="zip">.zip — Архив ZIP</option>
+          <option value="mp3">.mp3 — Аудио MP3</option>
+          <option value="mp4">.mp4 — Видео MP4</option>
+          <option value="csv">.csv — Таблица CSV</option>
+          <option value="bin">.bin — Бинарный файл</option>
+        </select>
+        <div class="modal-preview-area" id="modal-preview-area" style="display:none;">
+          <img id="modal-preview-img" src="" alt="" style="max-height:80px; max-width:120px; border-radius:6px; object-fit:contain;">
+        </div>
+        <div class="modal-result-name" id="modal-result-name"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="modal-cancel">Отмена</button>
+        <button class="btn btn-primary" id="modal-save">💾 Скачать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="footer">
+    Base64 Конвертер — Все операции выполняются локально в вашем браузере
+  </footer>
+</div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ==================================================================
+   BASE64 CONVERTER & DECODER — Pure HTML/CSS/JS
+   All processing happens client-side. No server requests.
+   ================================================================== */
+
+// ======================== CONSTANTS ========================
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+const CHUNK_SIZE = 1024 * 1024; // 1 MB chunks for large file processing
+
+// MIME signature detection (magic bytes)
+const MIME_SIGNATURES = [
+  { bytes: [0x89, 0x50, 0x4E, 0x47], mime: 'image/png', ext: 'png' },
+  { bytes: [0xFF, 0xD8, 0xFF], mime: 'image/jpeg', ext: 'jpg' },
+  { bytes: [0x47, 0x49, 0x46], mime: 'image/gif', ext: 'gif' },
+  { bytes: [0x52, 0x49, 0x46, 0x46], mime: null, checkWebP: true }, // WebP starts with RIFF
+  { bytes: [0x25, 0x50, 0x44, 0x46], mime: 'application/pdf', ext: 'pdf' },
+  { bytes: [0x50, 0x4B, 0x03, 0x04], mime: 'application/zip', ext: 'zip' },
+  { bytes: [0x50, 0x4B, 0x05, 0x06], mime: 'application/zip', ext: 'zip' },
+];
+
+// Extension to MIME type mapping
+const EXT_TO_MIME = {
+  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+  gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml',
+  pdf: 'application/pdf', txt: 'text/plain', html: 'text/html',
+  css: 'text/css', js: 'application/javascript', json: 'application/json',
+  xml: 'application/xml', zip: 'application/zip', mp3: 'audio/mpeg',
+  mp4: 'video/mp4', wav: 'audio/wav', ico: 'image/x-icon',
+};
+
+// ======================== DOM ELEMENTS ========================
+const $ = (sel) => document.querySelector(sel);
+const tabButtons = document.querySelectorAll('.tab-btn');
+const textTab = $('#tab-text');
+const fileTab = $('#tab-file');
+
+// Text mode
+const textInput = $('#text-input');
+const textOutput = $('#text-output');
+const textInputLabel = $('#text-input-label');
+const textOutputLabel = $('#text-output-label');
+const textCharCount = $('#text-char-count');
+const textByteCount = $('#text-byte-count');
+const textError = $('#text-error');
+const textSuccess = $('#text-success');
+
+// File mode
+const dropZone = $('#drop-zone');
+const fileInput = $('#file-input');
+const fileInfo = $('#file-info');
+const filePreviewImg = $('#file-preview-img');
+const fileName = $('#file-name');
+const fileSize = $('#file-size');
+const fileMime = $('#file-mime');
+const fileProgress = $('#file-progress');
+const fileProgressFill = $('#file-progress-fill');
+const fileSpinner = $('#file-spinner');
+const fileError = $('#file-error');
+const fileBase64Card = $('#file-base64-card');
+const fileBase64Output = $('#file-base64-output');
+const fileBase64Size = $('#file-base64-size');
+const fileOriginalSize = $('#file-original-size');
+
+// Decode
+const decodeInput = $('#decode-input');
+const decodeError = $('#decode-error');
+const decodeSuccess = $('#decode-success');
+const downloadSection = $('#download-section');
+const decodedFilePreview = $('#decoded-file-preview');
+const decodedPreviewImg = $('#decoded-preview-img');
+const decodedSize = $('#decoded-size');
+
+// Modal
+const downloadModal = $('#download-modal');
+const modalFilename = $('#modal-filename');
+const modalExt = $('#modal-ext');
+const modalPreviewArea = $('#modal-preview-area');
+const modalPreviewImg = $('#modal-preview-img');
+const modalResultName = $('#modal-result-name');
+const modalCloseBtn = $('#modal-close-btn');
+const modalCancel = $('#modal-cancel');
+const modalSave = $('#modal-save');
+
+// Toast
+const toast = $('#toast');
+
+// ======================== STATE ========================
+let textDirection = 'encode'; // 'encode' (text→base64) or 'decode' (base64→text)
+let decodedBlob = null;
+let decodedFileName = 'download';
+
+// ======================== UTILITY FUNCTIONS ========================
+
+/**
+ * Format bytes to human-readable string
+ */
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 Б';
+  const k = 1024;
+  const sizes = ['Б', 'КБ', 'МБ', 'ГБ'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
+ * Universal file download function — works on mobile & desktop browsers.
+ * Uses Blob URL + anchor click, with fallback to window.open() if needed.
+ */
+function downloadFile(blob, filename) {
+  // Method 1: Blob URL + anchor (standard)
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    // Cleanup after delay (needed on mobile)
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 2000);
+    return true;
+  } catch (e) {
+    console.warn('Download method 1 failed:', e);
+  }
+
+  // Method 2: FileReader → data URL fallback
+  try {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const a = document.createElement('a');
+      a.href = reader.result;
+      a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => document.body.removeChild(a), 2000);
+    };
+    reader.readAsDataURL(blob);
+    return true;
+  } catch (e) {
+    console.warn('Download method 2 failed:', e);
+  }
+
+  // Method 3: window.open as last resort
+  try {
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if (win) {
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      return true;
+    }
+  } catch (e) {
+    console.warn('Download method 3 failed:', e);
+  }
+
+  return false;
+}
+
+/**
+ * Get UTF-8 byte length of a string
+ */
+function getByteLength(str) {
+  return new TextEncoder().encode(str).length;
+}
+
+/**
+ * Show toast notification
+ */
+function showToast(message, duration = 2000) {
+  toast.textContent = message;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), duration);
+}
+
+/**
+ * Show alert element
+ */
+function showAlert(el, message) {
+  el.textContent = message;
+  el.classList.add('visible');
+}
+
+/**
+ * Hide alert element
+ */
+function hideAlert(el) {
+  el.classList.remove('visible');
+  el.textContent = '';
+}
+
+/**
+ * Detect MIME type from file bytes (magic bytes)
+ */
+function detectMimeType(bytes) {
+  for (const sig of MIME_SIGNATURES) {
+    let match = true;
+    for (let i = 0; i < sig.bytes.length; i++) {
+      if (bytes[i] !== sig.bytes[i]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) {
+      // Special check for WebP (RIFF....WEBP)
+      if (sig.checkWebP) {
+        const header = new TextDecoder().decode(bytes.slice(0, 12));
+        if (header.startsWith('RIFF') && header.substring(8, 12) === 'WEBP') {
+          return { mime: 'image/webp', ext: 'webp' };
+        }
+      }
+      if (sig.mime) {
+        return { mime: sig.mime, ext: sig.ext };
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Get file extension from MIME type
+ */
+function extFromMime(mime) {
+  for (const [ext, m] of Object.entries(EXT_TO_MIME)) {
+    if (m === mime) return ext;
+  }
+  return 'bin';
+}
+
+/**
+ * Validate Base64 string
+ */
+function isValidBase64(str) {
+  // Remove whitespace
+  const clean = str.replace(/\s/g, '');
+  // Must be divisible by 4
+  if (clean.length % 4 !== 0) return false;
+  // Must match Base64 alphabet
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(clean)) return false;
+  return true;
+}
+
+/**
+ * Encode text to Base64 (UTF-8 safe)
+ */
+function encodeBase64(text) {
+  const bytes = new TextEncoder().encode(text);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+/**
+ * Decode Base64 to text (UTF-8 safe)
+ */
+function decodeBase64(base64) {
+  const clean = base64.replace(/\s/g, '');
+  const binary = atob(clean);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new TextDecoder().decode(bytes);
+}
+
+/**
+ * Encode ArrayBuffer to Base64
+ */
+function arrayBufferToBase64(buffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+/**
+ * Decode Base64 string to ArrayBuffer
+ */
+function base64ToArrayBuffer(base64) {
+  const clean = base64.replace(/\s/g, '');
+  const binary = atob(clean);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+// ======================== TAB SWITCHING ========================
+tabButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tabButtons.forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    });
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+
+    const tab = btn.dataset.tab;
+    textTab.style.display = tab === 'text' ? 'block' : 'none';
+    fileTab.style.display = tab === 'file' ? 'block' : 'none';
+  });
+});
+
+// ======================== TEXT MODE ========================
+
+/**
+ * Process text input in real-time based on current direction
+ */
+function processText() {
+  const val = textInput.value;
+
+  // Update stats
+  textCharCount.textContent = val.length;
+  textByteCount.textContent = getByteLength(val);
+
+  // Clear alerts
+  hideAlert(textError);
+  hideAlert(textSuccess);
+
+  if (!val) {
+    textOutput.value = '';
+    return;
+  }
+
+  try {
+    if (textDirection === 'encode') {
+      textOutput.value = encodeBase64(val);
+    } else {
+      textOutput.value = decodeBase64(val);
+    }
+  } catch (e) {
+    textOutput.value = '';
+    showAlert(textError, '❌ Ошибка: некорректная Base64-строка. Проверьте ввод.');
+  }
+}
+
+/**
+ * Set the text conversion direction
+ */
+function setTextDirection(dir) {
+  textDirection = dir;
+  document.querySelectorAll('.dir-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.dir === dir);
+  });
+
+  if (dir === 'encode') {
+    textInputLabel.textContent = 'Текст для кодирования';
+    textOutputLabel.textContent = 'Результат (Base64)';
+    textInput.placeholder = 'Введите текст для кодирования в Base64...';
+  } else {
+    textInputLabel.textContent = 'Base64 для декодирования';
+    textOutputLabel.textContent = 'Результат (текст)';
+    textInput.placeholder = 'Вставьте Base64-строку для декодирования...';
+  }
+
+  // Re-process current input
+  processText();
+}
+
+// Direction toggle buttons
+document.querySelectorAll('.dir-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    setTextDirection(btn.dataset.dir);
+  });
+});
+
+// Real-time text processing
+textInput.addEventListener('input', processText);
+
+// Example text
+$('#btn-example-text').addEventListener('click', () => {
+  textInput.value = 'Привет, мир! Это пример текста для кодирования в Base64. 🚀';
+  processText();
+  showToast('✅ Пример вставлен');
+});
+
+// Paste from clipboard
+$('#btn-paste-text').addEventListener('click', async () => {
+  try {
+    const text = await navigator.clipboard.readText();
+    textInput.value = text;
+    processText();
+    showToast('📥 Вставлено из буфера');
+  } catch {
+    showToast('⚠️ Нет доступа к буферу обмена');
+  }
+});
+
+// Swap input and output
+$('#btn-swap-text').addEventListener('click', () => {
+  const inputVal = textInput.value;
+  const outputVal = textOutput.value;
+  if (!outputVal) {
+    showToast('⚠️ Нечего менять местами');
+    return;
+  }
+  textInput.value = outputVal;
+  textOutput.value = '';
+  // Switch direction
+  setTextDirection(textDirection === 'encode' ? 'decode' : 'encode');
+  showToast('⇄ Поменяли местами');
+});
+
+// Clear text
+$('#btn-clear-text').addEventListener('click', () => {
+  textInput.value = '';
+  textOutput.value = '';
+  textCharCount.textContent = '0';
+  textByteCount.textContent = '0';
+  hideAlert(textError);
+  hideAlert(textSuccess);
+  textInput.focus();
+});
+
+// Copy text output
+$('#btn-copy-text-output').addEventListener('click', async () => {
+  const val = textOutput.value;
+  if (!val) {
+    showToast('⚠️ Нечего копировать');
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(val);
+    showToast('📋 Скопировано!');
+  } catch {
+    textOutput.select();
+    document.execCommand('copy');
+    showToast('📋 Скопировано!');
+  }
+});
+
+// Download text output as file
+$('#btn-download-text-output').addEventListener('click', () => {
+  const val = textOutput.value;
+  if (!val) {
+    showToast('⚠️ Нечего скачивать');
+    return;
+  }
+  const isBase64 = textDirection === 'encode';
+  const ext = isBase64 ? 'b64' : 'txt';
+  const filename = 'result.' + ext;
+  const blob = new Blob([val], { type: 'text/plain' });
+  const ok = downloadFile(blob, filename);
+  if (ok) showToast('💾 Скачивание: ' + filename);
+  else showToast('⚠️ Не удалось скачать');
+});
+
+// ======================== FILE MODE ========================
+
+/**
+ * Handle file encoding to Base64
+ */
+async function encodeFile(file) {
+  // Reset UI
+  hideAlert(fileError);
+  fileBase64Card.style.display = 'none';
+  fileInfo.style.display = 'none';
+  filePreviewImg.style.display = 'none';
+
+  // Validate file size
+  if (file.size > MAX_FILE_SIZE) {
+    showAlert(fileError, `❌ Файл слишком большой (${formatBytes(file.size)}). Максимум: ${formatBytes(MAX_FILE_SIZE)}`);
+    return;
+  }
+
+  // Show file info
+  fileName.textContent = file.name;
+  fileSize.textContent = formatBytes(file.size);
+  fileMime.textContent = file.type || 'Неизвестный тип';
+  fileInfo.style.display = 'flex';
+
+  // Show image preview if applicable
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      filePreviewImg.src = e.target.result;
+      filePreviewImg.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Show progress
+  fileProgress.classList.add('visible');
+  fileSpinner.classList.add('visible');
+  fileProgressFill.style.width = '0%';
+
+  try {
+    // Read file as ArrayBuffer
+    const buffer = await file.arrayBuffer();
+
+    // For large files, show progress with chunked encoding
+    if (buffer.byteLength > CHUNK_SIZE) {
+      // Simulate progress during processing
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 10;
+        fileProgressFill.style.width = Math.min(progress, 90) + '%';
+        if (progress >= 90) clearInterval(interval);
+      }, 100);
+
+      const base64 = arrayBufferToBase64(buffer);
+      clearInterval(interval);
+      fileProgressFill.style.width = '100%';
+
+      // Show result
+      fileBase64Output.value = base64;
+      fileBase64Size.textContent = formatBytes(base64.length);
+      fileOriginalSize.textContent = formatBytes(buffer.byteLength);
+      fileBase64Card.style.display = 'block';
+    } else {
+      const base64 = arrayBufferToBase64(buffer);
+      fileProgressFill.style.width = '100%';
+
+      fileBase64Output.value = base64;
+      fileBase64Size.textContent = formatBytes(base64.length);
+      fileOriginalSize.textContent = formatBytes(buffer.byteLength);
+      fileBase64Card.style.display = 'block';
+    }
+  } catch (e) {
+    showAlert(fileError, '❌ Ошибка при чтении файла: ' + e.message);
+  } finally {
+    // Hide progress after delay
+    setTimeout(() => {
+      fileProgress.classList.remove('visible');
+      fileSpinner.classList.remove('visible');
+      fileProgressFill.style.width = '0%';
+    }, 500);
+  }
+}
+
+// ======================== DRAG & DROP ========================
+['dragenter', 'dragover'].forEach(evt => {
+  dropZone.addEventListener(evt, (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.add('drag-over');
+  });
+});
+
+['dragleave', 'drop'].forEach(evt => {
+  dropZone.addEventListener(evt, (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.remove('drag-over');
+  });
+});
+
+dropZone.addEventListener('drop', (e) => {
+  const files = e.dataTransfer.files;
+  if (files.length > 0) {
+    encodeFile(files[0]);
+  }
+});
+
+// File input change
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length > 0) {
+    encodeFile(fileInput.files[0]);
+  }
+});
+
+// Copy file Base64
+$('#btn-copy-file-base64').addEventListener('click', async () => {
+  const val = fileBase64Output.value;
+  if (!val) {
+    showToast('⚠️ Нечего копировать');
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(val);
+    showToast('📋 Скопировано!');
+  } catch {
+    fileBase64Output.select();
+    document.execCommand('copy');
+    showToast('📋 Скопировано!');
+  }
+});
+
+// ======================== DECODE BASE64 TO FILE ========================
+
+/**
+ * Decode Base64 string and create downloadable file
+ */
+function decodeToFile() {
+  hideAlert(decodeError);
+  hideAlert(decodeSuccess);
+  downloadSection.style.display = 'none';
+  decodedBlob = null;
+
+  const val = decodeInput.value.trim();
+  if (!val) {
+    showAlert(decodeError, '❌ Введите Base64-строку для декодирования');
+    return;
+  }
+
+  try {
+    let base64Data = val;
+    let detectedMime = null;
+    let detectedExt = 'bin';
+
+    // Check if it's a data: URI
+    const dataUriMatch = val.match(/^data:([^;,]+)(;base64)?,([A-Za-z0-9+/=\s]+)$/);
+    if (dataUriMatch) {
+      detectedMime = dataUriMatch[1];
+      base64Data = dataUriMatch[3];
+      detectedExt = extFromMime(detectedMime);
+    } else if (!isValidBase64(val)) {
+      showAlert(decodeError, '❌ Некорректный формат Base64. Строка должна содержать только символы A-Z, a-z, 0-9, +, / и = для заполнения.');
+      return;
+    }
+
+    // Decode to ArrayBuffer
+    const buffer = base64ToArrayBuffer(base64Data);
+    const bytes = new Uint8Array(buffer);
+
+    // Try to detect MIME type from magic bytes
+    const detected = detectMimeType(bytes);
+    if (detected) {
+      detectedMime = detected.mime;
+      detectedExt = detected.ext;
+    }
+
+    // Create blob
+    decodedBlob = new Blob([buffer], { type: detectedMime || 'application/octet-stream' });
+    decodedFileName = 'decoded-file.' + detectedExt;
+
+    // Show image preview if image
+    if (detectedMime && detectedMime.startsWith('image/')) {
+      const dataUrl = 'data:' + detectedMime + ';base64,' + base64Data;
+      decodedPreviewImg.src = dataUrl;
+      decodedFilePreview.style.display = 'block';
+    } else {
+      decodedFilePreview.style.display = 'none';
+    }
+
+    // Show file info in download section
+    decodedSize.textContent = formatBytes(buffer.byteLength);
+
+    // Show success
+    showAlert(decodeSuccess, `✅ Декодировано! Размер: ${formatBytes(buffer.byteLength)}` + (detectedMime ? ` | Тип: ${detectedMime}` : ''));
+    downloadSection.classList.add('visible');
+
+  } catch (e) {
+    showAlert(decodeError, '❌ Ошибка декодирования: ' + e.message);
+  }
+}
+
+$('#btn-decode').addEventListener('click', decodeToFile);
+
+// Tap on success message to open download modal
+decodeSuccess.addEventListener('click', () => {
+  if (decodedBlob) openDownloadModal();
+});
+decodeSuccess.style.cursor = 'pointer';
+decodeSuccess.title = 'Нажмите для скачивания файла';
+
+// ==================== DOWNLOAD MODAL LOGIC ====================
+
+/**
+ * Open the download modal with current decoded file info
+ */
+function openDownloadModal() {
+  if (!decodedBlob) return;
+
+  // Set default filename (strip extension)
+  const nameParts = decodedFileName.split('.');
+  if (nameParts.length > 1) {
+    modalFilename.value = nameParts.slice(0, -1).join('.');
+    const currentExt = nameParts[nameParts.length - 1].toLowerCase();
+    // Try to select matching extension in dropdown
+    const options = modalExt.options;
+    let found = false;
+    for (let i = 0; i < options.length; i++) {
+      if (options[i].value === currentExt) {
+        modalExt.selectedIndex = i;
+        found = true;
+        break;
+      }
+    }
+    if (!found) modalExt.value = 'bin';
+  } else {
+    modalFilename.value = decodedFileName;
+    modalExt.value = 'bin';
+  }
+
+  // Show image preview if image
+  if (decodedBlob.type && decodedBlob.type.startsWith('image/')) {
+    const url = URL.createObjectURL(decodedBlob);
+    modalPreviewImg.src = url;
+    modalPreviewArea.style.display = 'block';
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  } else {
+    modalPreviewArea.style.display = 'none';
+  }
+
+  updateModalResult();
+  downloadModal.classList.add('visible');
+  modalFilename.focus();
+  modalFilename.select();
+}
+
+/**
+ * Update the displayed result filename
+ */
+function updateModalResult() {
+  const name = modalFilename.value.trim() || 'file';
+  const ext = modalExt.value;
+  modalResultName.textContent = name + '.' + ext;
+}
+
+/**
+ * Close the download modal
+ */
+function closeDownloadModal() {
+  downloadModal.classList.remove('visible');
+}
+
+/**
+ * Download the file with modal's filename
+ */
+function downloadFromModal() {
+  if (!decodedBlob) return;
+  const name = modalFilename.value.trim() || 'file';
+  const ext = modalExt.value;
+  const fullFilename = name + '.' + ext;
+  const ok = downloadFile(decodedBlob, fullFilename);
+  if (ok) {
+    showToast('💾 Скачивание: ' + fullFilename);
+    closeDownloadModal();
+  } else {
+    showToast('⚠️ Не удалось скачать');
+  }
+}
+
+// Modal event listeners
+$('#btn-download').addEventListener('click', () => {
+  if (decodedBlob) openDownloadModal();
+});
+
+modalCloseBtn.addEventListener('click', closeDownloadModal);
+modalCancel.addEventListener('click', closeDownloadModal);
+modalSave.addEventListener('click', downloadFromModal);
+
+// Update result filename on input/change
+modalFilename.addEventListener('input', updateModalResult);
+modalExt.addEventListener('change', updateModalResult);
+
+// Close modal on overlay click (not on modal itself)
+downloadModal.addEventListener('click', (e) => {
+  if (e.target === downloadModal) closeDownloadModal();
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && downloadModal.classList.contains('visible')) {
+    closeDownloadModal();
+  }
+});
+
+// Enter key in filename field triggers save
+modalFilename.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    downloadFromModal();
+  }
+});
+
+// Download Base64 as .b64 file
+$('#btn-download-base64').addEventListener('click', () => {
+  const val = fileBase64Output.value;
+  if (!val) {
+    showToast('⚠️ Нечего скачивать');
+    return;
+  }
+  const blob = new Blob([val], { type: 'text/plain' });
+  const name = (fileName.textContent || 'file') + '.b64';
+  const ok = downloadFile(blob, name);
+  if (ok) showToast('💾 Скачивание: ' + name);
+  else showToast('⚠️ Не удалось скачать');
+});
+
+// Example Base64 (a small PNG 1x1 pixel transparent image)
+$('#btn-example-base64').addEventListener('click', () => {
+  decodeInput.value = 'iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNk+M+AARiHKhgFBDYAAHpcP/0E9XS2AAAAAElFTkSuQmCC';
+  showToast('✅ Пример Base64 вставлен (1x1 PNG)');
+});
+
+// Clear decode input
+$('#btn-clear-decode').addEventListener('click', () => {
+  decodeInput.value = '';
+  hideAlert(decodeError);
+  hideAlert(decodeSuccess);
+  downloadSection.classList.remove('visible');
+  decodedSize.textContent = '';
+  decodedBlob = null;
+  closeDownloadModal();
+  decodeInput.focus();
+});
+
+// ======================== INIT ========================
+// Set initial state
+processText();
+</script>
+
+</body>
+</html>
