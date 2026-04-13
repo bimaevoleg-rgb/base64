@@ -949,7 +949,12 @@ textarea::placeholder {
         placeholder="Вставьте Base64-строку или data: URL для декодирования в файл..."
         spellcheck="false"
       ></textarea>
+      <!-- Hidden file input for loading binary files -->
+      <input type="file" id="decode-file-input" accept="*/*" style="display: none;">
       <div class="btn-row">
+        <button class="btn btn-primary" id="btn-load-file" title="Загрузить бинарный файл">
+          📂 Загрузить файл
+        </button>
         <button class="btn" id="btn-example-base64" title="Вставить пример Base64">
           💡 Пример Base64
         </button>
@@ -1107,6 +1112,7 @@ const downloadSection = $('#download-section');
 const decodedFilePreview = $('#decoded-file-preview');
 const decodedPreviewImg = $('#decoded-preview-img');
 const decodedSize = $('#decoded-size');
+const decodeFileInput = $('#decode-file-input');
 
 // Modal
 const downloadModal = $('#download-modal');
@@ -1807,6 +1813,71 @@ modalFilename.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
     downloadFromModal();
+  }
+});
+
+// ======================== LOAD BINARY FILE TO BASE64 ========================
+
+/**
+ * Handle the "Load File" button click - opens file picker for binary files
+ */
+$('#btn-load-file').addEventListener('click', () => {
+  decodeFileInput.click();
+});
+
+/**
+ * Handle binary file selection - convert to Base64 and display in decode input
+ */
+decodeFileInput.addEventListener('change', async () => {
+  if (decodeFileInput.files.length === 0) return;
+  
+  const file = decodeFileInput.files[0];
+  
+  // Reset UI
+  hideAlert(decodeError);
+  hideAlert(decodeSuccess);
+  downloadSection.classList.remove('visible');
+  decodedBlob = null;
+  
+  // Validate file size
+  if (file.size > MAX_FILE_SIZE) {
+    showAlert(decodeError, `❌ Файл слишком большой (${formatBytes(file.size)}). Максимум: ${formatBytes(MAX_FILE_SIZE)}`);
+    decodeFileInput.value = '';
+    return;
+  }
+  
+  try {
+    // Show loading state
+    decodeInput.value = '⏳ Загрузка файла...';
+    
+    // Read file as ArrayBuffer
+    const buffer = await file.arrayBuffer();
+    
+    // Convert to Base64
+    const base64 = arrayBufferToBase64(buffer);
+    
+    // Create data: URI with detected MIME type
+    const detected = detectMimeType(new Uint8Array(buffer));
+    let dataUri = base64;
+    
+    if (detected) {
+      dataUri = `data:${detected.mime};base64,${base64}`;
+    } else if (file.type) {
+      dataUri = `data:${file.type};base64,${base64}`;
+    }
+    
+    // Set the Base64 in the decode input
+    decodeInput.value = dataUri;
+    
+    // Show success message
+    showAlert(decodeSuccess, `✅ Файл "${file.name}" загружен и конвертирован в Base64 (${formatBytes(file.size)})`);
+    
+    // Clear the file input
+    decodeFileInput.value = '';
+    
+  } catch (e) {
+    showAlert(decodeError, '❌ Ошибка при чтении файла: ' + e.message);
+    decodeInput.value = '';
   }
 });
 
